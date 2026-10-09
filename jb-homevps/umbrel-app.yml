@@ -3,7 +3,7 @@ id: jb-homevps
 category: developer
 name: Home VPS
 icon: https://raw.githubusercontent.com/Silver765/Home-VPS/main/jb-homevps/icon.svg
-version: "1.1.1"
+version: "1.2.0"
 tagline: Your own VPS at home - dashboard, SSH terminal, web hosting
 description: >-
   Turns your Umbrel or 5tratumOS box into a personal VPS. A dashboard shows
@@ -13,8 +13,8 @@ description: >-
   and can reverse-proxy your other services.
 
 
-  Sign in to the dashboard (port 3010) with this app's generated password, the
-  same one used for SSH (user "vps"). To expose sites to the internet use a
+  Sign in to the dashboard (port 3010) with the default password "admin" (also the
+  SSH password for user "vps") and change it in Settings. To expose sites to the internet use a
   Cloudflare Tunnel or forward 8088; avoid exposing SSH with a weak password.
 developer: Silver765
 website: https://github.com/Silver765/Home-VPS
@@ -25,8 +25,9 @@ port: 3010
 gallery: []
 path: ""
 defaultUsername: ""
-defaultPassword: ""
+defaultPassword: "admin"
 releaseNotes: >-
+  v1.2.0: Default password is now admin (dashboard + SSH), changeable in Settings. No longer depends on the platform providing a password.
   v1.1.1: Ports 8080, 9999/udp, 8089 and boot hooks so you can host your own services (e.g. CoinsOS) in the shell.
   v1.1.0: New dashboard with web terminal, file manager, live stats and Caddyfile editor.
 submitter: Silver765

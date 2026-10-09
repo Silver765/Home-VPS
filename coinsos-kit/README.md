@@ -10,7 +10,7 @@ LAN rigs ---------------------------------------> backend (:8080, udp :9999)
 ```
 
 ## Requirements
-* Home VPS app **1.1.1 or newer** (adds the ports and boot hooks this uses).
+* Home VPS app **1.2.0 or newer** (adds the ports and boot hooks this uses).
 * On your PC: Docker, and Windows' built-in `ssh` and `tar`. No Go or Node needed.
 
 ## First time
@@ -18,7 +18,7 @@ LAN rigs ---------------------------------------> backend (:8080, udp :9999)
    ```
    .\deploy.ps1 -BoxHost 192.168.1.50
    ```
-   Enter your Home VPS password when asked (the same one as the dashboard).
+   Enter your Home VPS password when asked (the dashboard password, default `admin`).
 2. **Restart the Home VPS app once** (this installs Postgres and starts CoinsOS).
 3. Home VPS dashboard > **Web Server**, paste into the Caddyfile (keep the existing `:80` block):
    ```

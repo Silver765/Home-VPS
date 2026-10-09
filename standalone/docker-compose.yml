@@ -1,28 +1,28 @@
 # Plain Docker version (any Docker host). Run: docker compose up -d --build
-# Set APP_PASSWORD in a .env file next to this file - it is the dashboard login
-# AND the SSH password for user "vps". Dashboard: http://<ip>:3010
+# Dashboard: http://<ip>:3010. Default password: admin (dashboard login AND SSH password
+# for user "vps"); change it in the dashboard's Settings page.
 services:
   app:
     build: ../app
-    image: ghcr.io/silver765/home-vps-app:1.1.0@sha256:1e647cd274c646dfb2cc1cced2bcfbdc035b48d6732223ef5b4aab1cb78a0489
+    image: ghcr.io/silver765/home-vps-app:1.2.0@sha256:2843f612906f07c4775efecb1e9eea616050be7f34e70646a657de83f81da3e2
     restart: unless-stopped
     ports: ["3010:3010"]
     environment:
-      APP_PASSWORD: ${APP_PASSWORD:?set APP_PASSWORD in .env}
       SSH_HOST: vps
       SSH_PORT: 2222
       SSH_USER: vps
       WEB_HOST: web
       PUBLIC_SSH_PORT: "2222"
       PUBLIC_WEB_PORT: "8088"
-    volumes: [./data/sites:/data/sites, ./data/vps-home:/data/vps-home, ./data/caddy:/data/caddy]
+    volumes: [./data/sites:/data/sites, ./data/vps-home:/data/vps-home, ./data/caddy:/data/caddy, ./data/auth:/data/auth]
   vps:
     image: lscr.io/linuxserver/openssh-server:9.7_p1-r4-ls172@sha256:a40b2dc8d0bc72e49355fbdf695ccf0ad18f268e7543c53f7f5ac83ee2fcc10b
     hostname: homevps
+    depends_on: [app]
     restart: unless-stopped
-    environment: [PUID=1000, PGID=1000, TZ=UTC, SUDO_ACCESS=true, PASSWORD_ACCESS=true, USER_NAME=vps, "USER_PASSWORD=${APP_PASSWORD}"]
+    environment: [PUID=1000, PGID=1000, TZ=UTC, SUDO_ACCESS=true, PASSWORD_ACCESS=true, USER_NAME=vps, FILE__USER_PASSWORD=/auth/password]
     ports: ["2222:2222", "8080:8080", "9999:9999/udp"]
-    volumes: [./data/vps-home:/config, ./data/sites:/sites, ./data/vps-home/init.d:/custom-cont-init.d:ro, ./data/vps-home/services.d:/custom-services.d:ro]
+    volumes: [./data/vps-home:/config, ./data/sites:/sites, ./data/auth:/auth:ro, ./data/vps-home/init.d:/custom-cont-init.d:ro, ./data/vps-home/services.d:/custom-services.d:ro]
   web:
     image: caddy:2.8-alpine@sha256:af32e97399febea808609119bb21544d0265c58a02836576e32a2d082c262c17
     restart: unless-stopped
