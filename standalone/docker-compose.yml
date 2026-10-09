@@ -21,12 +21,12 @@ services:
     hostname: homevps
     restart: unless-stopped
     environment: [PUID=1000, PGID=1000, TZ=UTC, SUDO_ACCESS=true, PASSWORD_ACCESS=true, USER_NAME=vps, "USER_PASSWORD=${APP_PASSWORD}"]
-    ports: ["2222:2222"]
-    volumes: [./data/vps-home:/config, ./data/sites:/sites]
+    ports: ["2222:2222", "8080:8080", "9999:9999/udp"]
+    volumes: [./data/vps-home:/config, ./data/sites:/sites, ./data/vps-home/init.d:/custom-cont-init.d:ro, ./data/vps-home/services.d:/custom-services.d:ro]
   web:
     image: caddy:2.8-alpine@sha256:af32e97399febea808609119bb21544d0265c58a02836576e32a2d082c262c17
     restart: unless-stopped
     extra_hosts: ["host.docker.internal:host-gateway"]
     command: ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile", "--watch"]
-    ports: ["8088:80"]
+    ports: ["8088:80", "8089:81"]
     volumes: [./data/sites:/srv, ./data/caddy:/etc/caddy, ./data/caddy-data:/data]

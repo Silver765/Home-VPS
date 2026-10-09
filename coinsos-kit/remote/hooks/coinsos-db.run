@@ -1,0 +1,15 @@
+#!/usr/bin/with-contenv bash
+# Supervised service: PostgreSQL for CoinsOS (listens on 127.0.0.1 only).
+APP=/config/coinsos
+PGDATA=$APP/pgdata
+[ -f "$APP/coinsos.env" ] || { sleep 30; exit 1; }
+set -a; . "$APP/coinsos.env"; set +a
+command -v postgres >/dev/null || { echo "[coinsos-db] postgres not installed yet"; sleep 15; exit 1; }
+
+if [ ! -f "$PGDATA/PG_VERSION" ]; then
+  mkdir -p "$PGDATA"; chown vps:users "$PGDATA"; chmod 700 "$PGDATA"
+  printf '%s' "$DB_PASSWORD" > /tmp/pgpw && chown vps /tmp/pgpw
+  s6-setuidgid vps initdb -D "$PGDATA" -U coinsos --auth=scram-sha-256 --pwfile=/tmp/pgpw >/dev/null
+  rm -f /tmp/pgpw
+fi
+exec s6-setuidgid vps postgres -D "$PGDATA" -c listen_addresses=127.0.0.1 -c unix_socket_directories=/tmp

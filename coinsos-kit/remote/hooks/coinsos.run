@@ -1,0 +1,18 @@
+#!/usr/bin/with-contenv bash
+# Supervised service: the CoinsOS backend. Restarts automatically if it exits.
+APP=/config/coinsos
+[ -f "$APP/coinsos.env" ] || { sleep 30; exit 1; }
+set -a; . "$APP/coinsos.env"; set +a
+
+# wait for the database, create it on first run
+for i in $(seq 1 60); do pg_isready -h 127.0.0.1 -q && break; sleep 2; done
+export PGPASSWORD="$DB_PASSWORD"
+psql -h 127.0.0.1 -U coinsos -d postgres -tAc "select 1 from pg_database where datname='coinsos'" 2>/dev/null | grep -q 1 \
+  || psql -h 127.0.0.1 -U coinsos -d postgres -qc "create database coinsos" || { sleep 5; exit 1; }
+
+export DATABASE_URL="postgres://coinsos:${DB_PASSWORD}@127.0.0.1:5432/coinsos?sslmode=disable"
+export LISTEN_ADDR=":8080"
+export MIGRATIONS_DIR="$APP/migrations"
+export RELEASES_DIR="$APP/releases"
+cd "$APP"
+exec s6-setuidgid vps ./coinsos-server

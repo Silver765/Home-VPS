@@ -21,7 +21,7 @@ docker compose up -d --build
 ```
 
 ## Hosting other things
-* CoinsOS dashboard + OS images: see [docs/coinsos.md](docs/coinsos.md).
+* CoinsOS (dashboard public, OS images LAN-only), one-command deploy: see [coinsos-kit/README.md](coinsos-kit/README.md).
 
 ## Notes
 * The dashboard password is also the SSH password. Use a long one.

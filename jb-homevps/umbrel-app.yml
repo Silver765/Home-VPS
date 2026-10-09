@@ -3,7 +3,7 @@ id: jb-homevps
 category: developer
 name: Home VPS
 icon: https://raw.githubusercontent.com/Silver765/Home-VPS/main/jb-homevps/icon.svg
-version: "1.1.0"
+version: "1.1.1"
 tagline: Your own VPS at home - dashboard, SSH terminal, web hosting
 description: >-
   Turns your Umbrel or 5tratumOS box into a personal VPS. A dashboard shows
@@ -27,6 +27,7 @@ path: ""
 defaultUsername: ""
 defaultPassword: ""
 releaseNotes: >-
+  v1.1.1: Ports 8080, 9999/udp, 8089 and boot hooks so you can host your own services (e.g. CoinsOS) in the shell.
   v1.1.0: New dashboard with web terminal, file manager, live stats and Caddyfile editor.
 submitter: Silver765
 submission: https://github.com/Silver765/Home-VPS

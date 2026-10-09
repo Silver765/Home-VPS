@@ -42,9 +42,15 @@ services:
       - USER_PASSWORD=${APP_PASSWORD}
     ports:
       - "2222:2222"
+      # For hosting CoinsOS in the shell (see coinsos-kit/): rig traffic + discovery
+      - "8080:8080"
+      - "9999:9999/udp"
     volumes:
       - ${APP_DATA_DIR}/data/vps-home:/config
       - ${APP_DATA_DIR}/data/sites:/sites
+      # Start-on-boot hooks you drop in ~/init.d and ~/services.d (coinsos-kit uses these)
+      - ${APP_DATA_DIR}/data/vps-home/init.d:/custom-cont-init.d:ro
+      - ${APP_DATA_DIR}/data/vps-home/services.d:/custom-services.d:ro
 
   # Public web server for your sites (HTTP on 8088). Reloads when the
   # Caddyfile is saved in the dashboard.
@@ -56,6 +62,7 @@ services:
     command: ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile", "--watch"]
     ports:
       - "8088:80"
+      - "8089:81" # optional second site, e.g. CoinsOS dashboard on the LAN
     volumes:
       - ${APP_DATA_DIR}/data/sites:/srv
       - ${APP_DATA_DIR}/data/caddy:/etc/caddy
