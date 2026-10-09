@@ -1,0 +1,5 @@
+data/fb-db/
+data/vps-*/
+data/caddy-data/
+*.env
+.env

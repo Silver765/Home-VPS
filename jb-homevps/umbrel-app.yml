@@ -1,0 +1,30 @@
+manifestVersion: 1
+id: jb-homevps
+category: developer
+name: Home VPS
+icon: https://raw.githubusercontent.com/Silver765/Home-VPS/main/jb-homevps/icon.svg
+version: "1.0.0"
+tagline: Your own VPS at home - SSH, web hosting and file manager
+description: >-
+  Turns your Umbrel into a personal VPS. Includes an SSH-accessible Linux
+  box (install anything with sudo/apk), a Caddy web server for hosting
+  static sites and reverse-proxying your own services, and a web file manager.
+
+
+  SSH: port 2222, user "vps", password = this app's generated password
+  (shown in the app's settings). Websites: put files in the "sites" folder
+  and open port 8088. To expose to the internet use a Cloudflare Tunnel
+  or port-forward 8088/2222 on your router.
+developer: Silver765
+website: https://github.com/Silver765/Home-VPS
+dependencies: []
+repo: https://github.com/Silver765/Home-VPS
+support: https://github.com/Silver765/Home-VPS/issues
+port: 8081
+gallery: []
+path: ""
+defaultUsername: "admin"
+defaultPassword: "admin"
+releaseNotes: Initial release.
+submitter: Silver765
+submission: https://github.com/Silver765/Home-VPS

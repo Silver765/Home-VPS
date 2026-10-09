@@ -1,0 +1,8 @@
+:80 {
+	root * /srv
+	file_server browse
+}
+# Reverse-proxy another service, e.g.:
+# :80 {
+#   reverse_proxy umbrel.local:3000
+# }

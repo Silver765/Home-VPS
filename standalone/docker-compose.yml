@@ -1,0 +1,22 @@
+# Generic version for 5tratum OS (or any Docker host). Run: docker compose up -d
+# Set SSH_PASSWORD in a .env file next to this file.
+services:
+  files:
+    image: filebrowser/filebrowser:v2.31.2
+    restart: unless-stopped
+    user: "1000:1000"
+    command: ["--root", "/srv", "--database", "/db/filebrowser.db", "--port", "8080", "--address", "0.0.0.0"]
+    ports: ["8081:8080"]
+    volumes: [./data/sites:/srv/sites, ./data/vps-home:/srv/vps-home, ./data/fb-db:/db]
+  vps:
+    image: lscr.io/linuxserver/openssh-server:9.7_p1-r4-ls172
+    hostname: homevps
+    restart: unless-stopped
+    environment: [PUID=1000, PGID=1000, TZ=UTC, SUDO_ACCESS=true, PASSWORD_ACCESS=true, USER_NAME=vps, "USER_PASSWORD=${SSH_PASSWORD:?set SSH_PASSWORD in .env}"]
+    ports: ["2222:2222"]
+    volumes: [./data/vps-config:/config, ./data/vps-home:/home/vps, ./data/sites:/sites]
+  web:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    ports: ["8088:80"]
+    volumes: [./data/sites:/srv, ./data/Caddyfile:/etc/caddy/Caddyfile, ./data/caddy-data:/data]
