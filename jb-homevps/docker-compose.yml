@@ -4,12 +4,13 @@ version: "3.7"
 # the manifest's `port:` (3010) directly. It is protected by its own login,
 # which uses this app's generated ${APP_PASSWORD} (same as the SSH password).
 #
-# Pin every image to @sha256:<digest> once published
-# (see ../.github/workflows/publish-image.yml).
+# Images are pinned by digest. The dashboard image is built by
+# ../.github/workflows/publish-image.yml - after changing app/, bump the version
+# in app/package.json and update the digest here.
 
 services:
   app:
-    image: ghcr.io/silver765/home-vps-app:1.1.0
+    image: ghcr.io/silver765/home-vps-app:1.1.0@sha256:1e647cd274c646dfb2cc1cced2bcfbdc035b48d6732223ef5b4aab1cb78a0489
     restart: unless-stopped
     ports:
       - "3010:3010"
@@ -28,7 +29,7 @@ services:
 
   # The "VPS": an SSH shell with sudo. `sudo apk add nodejs python3 git ...`
   vps:
-    image: lscr.io/linuxserver/openssh-server:9.7_p1-r4-ls172
+    image: lscr.io/linuxserver/openssh-server:9.7_p1-r4-ls172@sha256:a40b2dc8d0bc72e49355fbdf695ccf0ad18f268e7543c53f7f5ac83ee2fcc10b
     hostname: homevps
     restart: unless-stopped
     environment:
@@ -48,7 +49,7 @@ services:
   # Public web server for your sites (HTTP on 8088). Reloads when the
   # Caddyfile is saved in the dashboard.
   web:
-    image: caddy:2.8-alpine
+    image: caddy:2.8-alpine@sha256:af32e97399febea808609119bb21544d0265c58a02836576e32a2d082c262c17
     restart: unless-stopped
     command: ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile", "--watch"]
     ports:

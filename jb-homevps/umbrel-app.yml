@@ -3,18 +3,19 @@ id: jb-homevps
 category: developer
 name: Home VPS
 icon: https://raw.githubusercontent.com/Silver765/Home-VPS/main/jb-homevps/icon.svg
-version: "1.0.0"
-tagline: Your own VPS at home - SSH, web hosting and file manager
+version: "1.1.0"
+tagline: Your own VPS at home - dashboard, SSH terminal, web hosting
 description: >-
-  Turns your Umbrel into a personal VPS. Includes an SSH-accessible Linux
-  box (install anything with sudo/apk), a Caddy web server for hosting
-  static sites and reverse-proxying your own services, and a web file manager.
+  Turns your Umbrel or 5tratumOS box into a personal VPS. A dashboard shows
+  how to connect and live CPU/RAM/disk, with a web terminal, a file manager
+  and a Caddyfile editor. Under the hood: an SSH shell (Alpine Linux with sudo,
+  port 2222) and a Caddy web server (port 8088) that serves your sites folder
+  and can reverse-proxy your other services.
 
 
-  SSH: port 2222, user "vps", password = this app's generated password
-  (shown in the app's settings). Websites: put files in the "sites" folder
-  and open port 8088. To expose to the internet use a Cloudflare Tunnel
-  or port-forward 8088/2222 on your router.
+  Sign in to the dashboard (port 3010) with this app's generated password, the
+  same one used for SSH (user "vps"). To expose sites to the internet use a
+  Cloudflare Tunnel or forward 8088; avoid exposing SSH with a weak password.
 developer: Silver765
 website: https://github.com/Silver765/Home-VPS
 dependencies: []
@@ -25,6 +26,7 @@ gallery: []
 path: ""
 defaultUsername: ""
 defaultPassword: ""
-releaseNotes: Initial release.
+releaseNotes: >-
+  v1.1.0: New dashboard with web terminal, file manager, live stats and Caddyfile editor.
 submitter: Silver765
 submission: https://github.com/Silver765/Home-VPS
