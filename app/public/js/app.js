@@ -63,7 +63,7 @@ $('#logout').addEventListener('click', async () => { await api('/api/logout', { 
 let timers = []
 let cleanup = null
 function stopTimers() { timers.forEach(clearInterval); timers = []; if (cleanup) { cleanup(); cleanup = null } }
-const routes = { overview, terminal, files, web }
+const routes = { overview, terminal, files, web, settings }
 function route() {
   stopTimers()
   const name = (location.hash.replace(/^#\/?/, '') || 'overview')
@@ -96,12 +96,9 @@ async function overview() {
     $('#c-conn').innerHTML = `<h2>Connect</h2><p class="desc">Use these to log in from anywhere on your network.</p>
       <div class="muted" style="font-size:12px;margin-bottom:4px">SSH</div>
       <div class="copyline"><code>${esc(c.sshCommand)}</code><button class="btn sm" data-copy="${esc(c.sshCommand)}">Copy</button></div>
-      <div class="muted" style="font-size:12px;margin-bottom:4px">Password (user <span class="text">${esc(c.sshUser)}</span>)</div>
-      <div class="copyline"><code id="pw">••••••••••••</code><button class="btn sm" id="pw-show">Show</button><button class="btn sm" data-copy="${esc(c.password)}">Copy</button></div>
+      <div class="muted" style="font-size:12px;margin-bottom:10px">Log in as user <span class="text">${esc(c.sshUser)}</span> with your dashboard password (set it in Settings).</div>
       <div class="muted" style="font-size:12px;margin-bottom:4px">Your website</div>
       <div class="copyline"><code>${esc(c.webUrl)}</code><a class="btn sm" href="${esc(c.webUrl)}" target="_blank" rel="noopener">Open</a><button class="btn sm" data-copy="${esc(c.webUrl)}">Copy</button></div>`
-    let shown = false
-    $('#pw-show').onclick = (e) => { shown = !shown; $('#pw').textContent = shown ? c.password : '••••••••••••'; e.target.textContent = shown ? 'Hide' : 'Show' }
     document.querySelectorAll('[data-copy]').forEach((b) => (b.onclick = () => copy(b.dataset.copy)))
   } catch (e) { $('#c-conn').insertAdjacentHTML('beforeend', `<div class="err">${esc(e.message)}</div>`) }
 
@@ -242,6 +239,29 @@ async function web() {
   $('#cf-save').onclick = async () => {
     try { await api('/api/caddyfile', { method: 'PUT', json: { content: $('#cf').value } }); toast('Saved - Caddy is reloading') } catch (e) { toast(e.message, true) }
   }
+}
+
+// ---------- settings ----------
+function settings() {
+  main.innerHTML = `<h1>Settings</h1><p class="sub">Account security for the dashboard and the SSH shell.</p>
+    <div class="card" style="max-width:460px"><h2>Change password</h2>
+    <p class="desc">One password is used for the dashboard login <b class="text">and</b> SSH (user <code>vps</code>). The default is <code>admin</code> - change it, especially if you expose anything to the internet.</p>
+    <form id="pw-form" style="display:flex;flex-direction:column;gap:10px">
+      <input id="pw-cur" type="password" placeholder="Current password" autocomplete="current-password" />
+      <input id="pw-new" type="password" placeholder="New password (4+ characters)" autocomplete="new-password" />
+      <input id="pw-new2" type="password" placeholder="Repeat new password" autocomplete="new-password" />
+      <div id="pw-err" class="err"></div>
+      <button class="btn primary" type="submit">Change password</button></form></div>`
+  $('#pw-form').addEventListener('submit', async (e) => {
+    e.preventDefault()
+    $('#pw-err').textContent = ''
+    if ($('#pw-new').value !== $('#pw-new2').value) return ($('#pw-err').textContent = "New passwords don't match.")
+    try {
+      await api('/api/password', { json: { current: $('#pw-cur').value, next: $('#pw-new').value } })
+      toast('Password changed (dashboard and SSH)')
+      $('#pw-form').reset()
+    } catch (err) { $('#pw-err').textContent = err.message }
+  })
 }
 
 // ---------- boot ----------

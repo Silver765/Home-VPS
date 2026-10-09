@@ -12,7 +12,6 @@ const { Client: SSHClient } = require('ssh2')
 
 const PORT = Number(process.env.PORT || 3010)
 const DATA_DIR = process.env.DATA_DIR || '/data'
-const PASSWORD = process.env.APP_PASSWORD || ''
 const SSH_HOST = process.env.SSH_HOST || 'vps'
 const SSH_PORT = Number(process.env.SSH_PORT || 2222)
 const SSH_USER = process.env.SSH_USER || 'vps'
@@ -21,10 +20,17 @@ const WEB_PORT = Number(process.env.WEB_PORT || 80)
 const PUBLIC_SSH_PORT = process.env.PUBLIC_SSH_PORT || '2222'
 const PUBLIC_WEB_PORT = process.env.PUBLIC_WEB_PORT || '8088'
 
-if (!PASSWORD) {
-  console.error('APP_PASSWORD is not set - refusing to start without a password.')
-  process.exit(1)
-}
+// The password lives in a small shared folder: this container reads/writes it and the
+// SSH container reads it at boot (FILE__USER_PASSWORD), so dashboard and SSH always match.
+// The default is 'admin' (like your other apps); change it any time in Settings, which
+// updates the dashboard login and the SSH password together.
+const AUTH_DIR = path.join(DATA_DIR, 'auth')
+const PW_FILE = path.join(AUTH_DIR, 'password')
+const SECRET_FILE = path.join(AUTH_DIR, 'secret')
+fs.mkdirSync(AUTH_DIR, { recursive: true })
+if (!fs.existsSync(PW_FILE)) fs.writeFileSync(PW_FILE, 'admin', { mode: 0o644 })
+if (!fs.existsSync(SECRET_FILE)) fs.writeFileSync(SECRET_FILE, crypto.randomBytes(32).toString('hex'), { mode: 0o600 })
+const readPw = () => fs.readFileSync(PW_FILE, 'utf8').trim()
 
 const ROOTS = {
   sites: path.join(DATA_DIR, 'sites'),
@@ -33,7 +39,7 @@ const ROOTS = {
 const CADDYFILE = path.join(DATA_DIR, 'caddy', 'Caddyfile')
 
 // ---------- auth ----------
-const SECRET = crypto.createHash('sha256').update('home-vps:' + PASSWORD).digest()
+const SECRET = Buffer.from(fs.readFileSync(SECRET_FILE, 'utf8').trim(), 'hex')
 const SESSION_MS = 12 * 60 * 60 * 1000
 const sign = (v) => crypto.createHmac('sha256', SECRET).update(v).digest('base64url')
 const safeEq = (a, b) => {
@@ -79,15 +85,51 @@ app.use((req, res, next) => {
   next()
 })
 
+const wrap = (fn) => (req, res) => fn(req, res).catch((e) => {
+  if (!res.headersSent) res.status(e.status || (e.code === 'ENOENT' ? 404 : 500)).json({ error: e.message })
+})
+
+const startSession = (res) =>
+  res.setHeader('Set-Cookie', `hv_session=${makeToken()}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${SESSION_MS / 1000}`)
+
+// Run a command on the VPS container over SSH (used to change the shell password live).
+function sshExec(password, command, stdin) {
+  return new Promise((resolve, reject) => {
+    const conn = new SSHClient()
+    conn.on('ready', () => {
+      conn.exec(command, (err, stream) => {
+        if (err) { conn.end(); return reject(err) }
+        let out = ''
+        stream.on('data', (d) => (out += d)).stderr.on('data', (d) => (out += d))
+        stream.on('close', (code) => { conn.end(); code === 0 ? resolve(out) : reject(new Error(out.trim() || `exit ${code}`)) })
+        stream.end(stdin)
+      })
+    })
+    conn.on('error', reject)
+    conn.connect({ host: SSH_HOST, port: SSH_PORT, username: SSH_USER, password, readyTimeout: 8000 })
+  })
+}
+async function changePassword(current, next) {
+  if (typeof next !== 'string' || next.length < 4 || next.length > 128 || next.includes('\n') || next.includes('\r')) {
+    throw Object.assign(new Error('Use 4-128 characters (no line breaks).'), { status: 400 })
+  }
+  try {
+    await sshExec(current, "sudo -S -p '' chpasswd", current + '\n' + SSH_USER + ':' + next + '\n')
+  } catch (e) {
+    throw Object.assign(new Error("Couldn't reach the VPS shell to set its password (is it still starting? try again in a minute): " + e.message), { status: 502 })
+  }
+  fs.writeFileSync(PW_FILE, next, { mode: 0o644 })
+}
+
 app.post('/api/login', express.json({ limit: '4kb' }), (req, res) => {
   const ip = req.socket.remoteAddress
   if (throttled(ip)) return res.status(429).json({ error: 'Too many attempts - wait a minute.' })
-  if (!safeEq((req.body && req.body.password) || '', PASSWORD)) {
+  if (!safeEq((req.body && req.body.password) || '', readPw())) {
     noteFail(ip)
     return res.status(401).json({ error: 'Wrong password.' })
   }
   fails.delete(ip)
-  res.setHeader('Set-Cookie', `hv_session=${makeToken()}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${SESSION_MS / 1000}`)
+  startSession(res)
   res.json({ ok: true })
 })
 app.post('/api/logout', (req, res) => {
@@ -102,6 +144,13 @@ app.use('/api', (req, res, next) => {
   if (req.method !== 'GET' && req.headers['x-hv'] !== '1') return res.status(403).json({ error: 'Bad request.' })
   next()
 })
+
+app.post('/api/password', express.json({ limit: '4kb' }), wrap(async (req, res) => {
+  const cur = (req.body && req.body.current) || ''
+  if (!safeEq(cur, readPw())) return res.status(401).json({ error: 'Current password is wrong.' })
+  await changePassword(cur, req.body.next)
+  res.json({ ok: true })
+}))
 
 // ---------- status ----------
 let lastCpu = null
@@ -167,7 +216,6 @@ app.get('/api/connection', (req, res) => {
     host, sshUser: SSH_USER, sshPort: PUBLIC_SSH_PORT, webPort: PUBLIC_WEB_PORT,
     sshCommand: `ssh ${SSH_USER}@${host} -p ${PUBLIC_SSH_PORT}`,
     webUrl: `http://${host}:${PUBLIC_WEB_PORT}`,
-    password: PASSWORD,
   })
 })
 
@@ -190,9 +238,6 @@ async function resolveSafe(rootName, rel) {
   if (p !== realRoot && !p.startsWith(realRoot + path.sep)) throw Object.assign(new Error('Path outside root.'), { status: 400 })
   return full
 }
-const wrap = (fn) => (req, res) => fn(req, res).catch((e) => {
-  if (!res.headersSent) res.status(e.status || (e.code === 'ENOENT' ? 404 : 500)).json({ error: e.message })
-})
 
 app.get('/api/files', wrap(async (req, res) => {
   const dir = await resolveSafe(req.query.root, req.query.path)
@@ -283,7 +328,7 @@ wss.on('connection', (ws) => {
     })
   })
   conn.on('error', (e) => { send(`\r\n[cannot reach the VPS container: ${e.message}]\r\n`); ws.close() })
-  conn.connect({ host: SSH_HOST, port: SSH_PORT, username: SSH_USER, password: PASSWORD, readyTimeout: 8000 })
+  conn.connect({ host: SSH_HOST, port: SSH_PORT, username: SSH_USER, password: readPw(), readyTimeout: 8000 })
   ws.on('message', (raw) => {
     let m
     try { m = JSON.parse(raw.toString()) } catch { return }
