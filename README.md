@@ -20,6 +20,9 @@ echo "APP_PASSWORD=choose-a-long-password" > .env
 docker compose up -d --build
 ```
 
+## Hosting other things
+* CoinsOS dashboard + OS images: see [docs/coinsos.md](docs/coinsos.md).
+
 ## Notes
 * The dashboard password is also the SSH password. Use a long one.
 * To reach it from the internet use a Cloudflare Tunnel (or forward 8088); don't expose

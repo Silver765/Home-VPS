@@ -51,6 +51,8 @@ services:
   web:
     image: caddy:2.8-alpine@sha256:af32e97399febea808609119bb21544d0265c58a02836576e32a2d082c262c17
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # reach other apps on this box, e.g. reverse_proxy host.docker.internal:3020
     command: ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile", "--watch"]
     ports:
       - "8088:80"

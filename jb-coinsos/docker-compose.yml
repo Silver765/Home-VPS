@@ -1,0 +1,65 @@
+version: "3.7"
+
+# CoinsOS = postgres + Go backend + nginx dashboard (see CoinsOS deploy/docker-compose.yml).
+# 5tratumOS runs no app_proxy, so the dashboard publishes the manifest's port directly.
+#
+# Secrets come from this app's generated ${APP_PASSWORD}: it is the database
+# password, and the JWT signing key is derived from it. Changing it signs
+# everyone out. Set real SMTP_* values below if you want invite / password
+# reset emails to actually send (otherwise links are logged by the backend).
+#
+# TODO before first install: publish the two coinsos images (see README) and
+# pin each with @sha256:<digest>.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: coinsos
+      POSTGRES_PASSWORD: ${APP_PASSWORD}
+      POSTGRES_DB: coinsos
+    volumes:
+      - ${APP_DATA_DIR}/data/pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U coinsos"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    image: ghcr.io/silver765/coinsos-backend:1.0.0
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://coinsos:${APP_PASSWORD}@postgres:5432/coinsos?sslmode=disable
+      JWT_SECRET: coinsos-jwt-${APP_PASSWORD}-v1
+      LISTEN_ADDR: ":8080"
+      # The address your browser uses for the dashboard; used in email links.
+      # Change to https://your-domain once it is published.
+      DASHBOARD_URL: http://umbrel.local:3020
+      SMTP_HOST: ""
+      SMTP_PORT: "587"
+      SMTP_USER: ""
+      SMTP_PASS: ""
+      SMTP_FROM: "CoinsOS <no-reply@localhost>"
+      WHATTOMINE_API_TOKEN: ""
+      CORS_ORIGINS: ""
+      RELEASES_DIR: /releases
+    ports:
+      # Rigs dial the backend directly (enrollment, heartbeats) - keep LAN-only.
+      - "8080:8080"
+      - "9999:9999/udp"
+    volumes:
+      # Put the built OS image (.img.xz + .img.xz.sha256) here.
+      - ${APP_DATA_DIR}/data/releases:/releases
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  dashboard:
+    image: ghcr.io/silver765/coinsos-dashboard:1.0.0
+    restart: unless-stopped
+    ports:
+      - "3020:80"
+    depends_on:
+      - backend
