@@ -1,22 +1,32 @@
 version: "3.7"
 
+# 5tratumOS runs no app_proxy (see the TripleX app), so the dashboard publishes
+# the manifest's `port:` (3010) directly. It is protected by its own login,
+# which uses this app's generated ${APP_PASSWORD} (same as the SSH password).
+#
+# Pin every image to @sha256:<digest> once published
+# (see ../.github/workflows/publish-image.yml).
+
 services:
-  # 5tratumOS runs no app_proxy, so the file manager publishes the manifest's
-  # `port:` (8081) directly.
-  # Web file manager (Umbrel UI). Manages the whole /srv tree: sites + vps home.
-  files:
-    image: filebrowser/filebrowser:v2.31.2
-    user: "1000:1000"
+  app:
+    image: ghcr.io/silver765/home-vps-app:1.1.0
     restart: unless-stopped
     ports:
-      - "8081:8080"
-    command: ["--root", "/srv", "--database", "/db/filebrowser.db", "--port", "8080", "--address", "0.0.0.0"]
+      - "3010:3010"
+    environment:
+      APP_PASSWORD: ${APP_PASSWORD}
+      SSH_HOST: vps
+      SSH_PORT: 2222
+      SSH_USER: vps
+      WEB_HOST: web
+      PUBLIC_SSH_PORT: "2222"
+      PUBLIC_WEB_PORT: "8088"
     volumes:
-      - ${APP_DATA_DIR}/data/sites:/srv/sites
-      - ${APP_DATA_DIR}/data/vps-home:/srv/vps-home
-      - ${APP_DATA_DIR}/data/fb-db:/db
+      - ${APP_DATA_DIR}/data/sites:/data/sites
+      - ${APP_DATA_DIR}/data/vps-home:/data/vps-home
+      - ${APP_DATA_DIR}/data/caddy:/data/caddy
 
-  # The "VPS": SSH shell with sudo. `sudo apk add nodejs python3 git ...`
+  # The "VPS": an SSH shell with sudo. `sudo apk add nodejs python3 git ...`
   vps:
     image: lscr.io/linuxserver/openssh-server:9.7_p1-r4-ls172
     hostname: homevps
@@ -32,17 +42,18 @@ services:
     ports:
       - "2222:2222"
     volumes:
-      - ${APP_DATA_DIR}/data/vps-config:/config
-      - ${APP_DATA_DIR}/data/vps-home:/home/vps
+      - ${APP_DATA_DIR}/data/vps-home:/config
       - ${APP_DATA_DIR}/data/sites:/sites
 
-  # Public web server for your sites (HTTP on 8088)
+  # Public web server for your sites (HTTP on 8088). Reloads when the
+  # Caddyfile is saved in the dashboard.
   web:
     image: caddy:2.8-alpine
     restart: unless-stopped
+    command: ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile", "--watch"]
     ports:
       - "8088:80"
     volumes:
       - ${APP_DATA_DIR}/data/sites:/srv
-      - ${APP_DATA_DIR}/data/Caddyfile:/etc/caddy/Caddyfile
+      - ${APP_DATA_DIR}/data/caddy:/etc/caddy
       - ${APP_DATA_DIR}/data/caddy-data:/data

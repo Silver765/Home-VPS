@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Home VPS</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="stylesheet" href="/vendor/xterm/css/xterm.css" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div id="login" class="login hidden">
+    <form id="login-form" class="card login-card">
+      <div class="logo big">Home<span>VPS</span></div>
+      <p class="muted">Sign in with this app's password (shown in your OS app settings).</p>
+      <input id="login-pw" type="password" placeholder="Password" autocomplete="current-password" autofocus />
+      <div id="login-err" class="err"></div>
+      <button class="btn primary" type="submit">Sign in</button>
+    </form>
+  </div>
+
+  <div id="shell" class="shell hidden">
+    <aside class="sidebar">
+      <a href="#/" class="logo">Home<span>VPS</span></a>
+      <nav id="nav">
+        <a href="#/" data-route="overview"><i>▣</i>Overview</a>
+        <a href="#/terminal" data-route="terminal"><i>›_</i>Terminal</a>
+        <a href="#/files" data-route="files"><i>🗂</i>Files</a>
+        <a href="#/web" data-route="web"><i>🌐</i>Web Server</a>
+      </nav>
+      <div class="side-foot">
+        <div class="text">Home VPS</div>
+        <div>SSH · Web · Files</div>
+        <button id="logout" class="btn block">Log out</button>
+      </div>
+    </aside>
+    <main id="main"></main>
+  </div>
+
+  <div id="modal" class="modal hidden"></div>
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="/vendor/xterm/lib/xterm.js"></script>
+  <script src="/vendor/addon-fit/lib/addon-fit.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

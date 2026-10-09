@@ -20,11 +20,11 @@ website: https://github.com/Silver765/Home-VPS
 dependencies: []
 repo: https://github.com/Silver765/Home-VPS
 support: https://github.com/Silver765/Home-VPS/issues
-port: 8081
+port: 3010
 gallery: []
 path: ""
-defaultUsername: "admin"
-defaultPassword: "admin"
+defaultUsername: ""
+defaultPassword: ""
 releaseNotes: Initial release.
 submitter: Silver765
 submission: https://github.com/Silver765/Home-VPS

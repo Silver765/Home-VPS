@@ -1,22 +1,28 @@
-# Home VPS (Umbrel community app store + standalone)
+# Home VPS
 
-## Umbrel (see jb-homevps-store)
-1. Repo: https://github.com/Silver765/Home-VPS (store files are at the repo root).
-2. Umbrel: App Store -> ... menu -> Community App Stores -> add the repo URL.
-3. Install **Home VPS**.
-   - File manager: open the app tile (login admin/admin on first run - change it).
-   - SSH: `ssh vps@<umbrel-ip> -p 2222` (password = app password from Umbrel).
-   - Websites: drop files in `sites/` -> http://<umbrel-ip>:8088
-   - Edit `data/Caddyfile` to reverse-proxy other services or add domains.
-4. To reach it from the internet: Cloudflare Tunnel (no port forwarding) or forward 8088/2222.
+A personal VPS for Umbrel / 5tratumOS (or any Docker host): host your own
+sites and tools on hardware you own instead of renting a VPS.
 
-## 5tratum OS / any Docker host
+* **Dashboard** (port 3010, CoinsOS-style UI): connection details, live CPU/RAM/disk,
+  a web terminal, a file manager and a Caddyfile editor. Login = the app password.
+* **SSH shell** (port 2222): Alpine Linux, user `vps`, sudo. `sudo apk add git nodejs python3 ...`
+* **Web server** (port 8088): Caddy serving the `sites` folder; edit the Caddyfile in the
+  dashboard to add domains or reverse-proxy your other apps. Saves reload automatically.
+
+## Install on Umbrel / 5tratumOS
+Add `https://github.com/Silver765/Home-VPS` as a community app store, then install **Home VPS**.
+Open the app tile (port 3010) and sign in with the app password.
+
+## Plain Docker
 ```
 cd standalone
-echo "SSH_PASSWORD=changeme" > .env
-docker compose up -d
+echo "APP_PASSWORD=choose-a-long-password" > .env
+docker compose up -d --build
 ```
-Ports: 8081 file manager, 2222 SSH, 8088 websites.
 
-Note: the SSH box is Alpine-based (`sudo apk add git nodejs python3 ...`).
-Don't expose SSH publicly with a weak password - use keys or a tunnel.
+## Notes
+* The dashboard password is also the SSH password. Use a long one.
+* To reach it from the internet use a Cloudflare Tunnel (or forward 8088); don't expose
+  2222 or 3010 publicly without a strong password / keys.
+* The dashboard image is built by `.github/workflows/publish-image.yml` and published to
+  `ghcr.io/silver765/home-vps-app`; the compose file pins it by digest.

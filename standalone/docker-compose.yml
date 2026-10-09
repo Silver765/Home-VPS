@@ -1,22 +1,31 @@
-# Generic version for 5tratum OS (or any Docker host). Run: docker compose up -d
-# Set SSH_PASSWORD in a .env file next to this file.
+# Plain Docker version (any Docker host). Run: docker compose up -d --build
+# Set APP_PASSWORD in a .env file next to this file - it is the dashboard login
+# AND the SSH password for user "vps". Dashboard: http://<ip>:3010
 services:
-  files:
-    image: filebrowser/filebrowser:v2.31.2
+  app:
+    build: ../app
+    image: ghcr.io/silver765/home-vps-app:1.1.0
     restart: unless-stopped
-    user: "1000:1000"
-    command: ["--root", "/srv", "--database", "/db/filebrowser.db", "--port", "8080", "--address", "0.0.0.0"]
-    ports: ["8081:8080"]
-    volumes: [./data/sites:/srv/sites, ./data/vps-home:/srv/vps-home, ./data/fb-db:/db]
+    ports: ["3010:3010"]
+    environment:
+      APP_PASSWORD: ${APP_PASSWORD:?set APP_PASSWORD in .env}
+      SSH_HOST: vps
+      SSH_PORT: 2222
+      SSH_USER: vps
+      WEB_HOST: web
+      PUBLIC_SSH_PORT: "2222"
+      PUBLIC_WEB_PORT: "8088"
+    volumes: [./data/sites:/data/sites, ./data/vps-home:/data/vps-home, ./data/caddy:/data/caddy]
   vps:
     image: lscr.io/linuxserver/openssh-server:9.7_p1-r4-ls172
     hostname: homevps
     restart: unless-stopped
-    environment: [PUID=1000, PGID=1000, TZ=UTC, SUDO_ACCESS=true, PASSWORD_ACCESS=true, USER_NAME=vps, "USER_PASSWORD=${SSH_PASSWORD:?set SSH_PASSWORD in .env}"]
+    environment: [PUID=1000, PGID=1000, TZ=UTC, SUDO_ACCESS=true, PASSWORD_ACCESS=true, USER_NAME=vps, "USER_PASSWORD=${APP_PASSWORD}"]
     ports: ["2222:2222"]
-    volumes: [./data/vps-config:/config, ./data/vps-home:/home/vps, ./data/sites:/sites]
+    volumes: [./data/vps-home:/config, ./data/sites:/sites]
   web:
     image: caddy:2.8-alpine
     restart: unless-stopped
+    command: ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile", "--watch"]
     ports: ["8088:80"]
-    volumes: [./data/sites:/srv, ./data/Caddyfile:/etc/caddy/Caddyfile, ./data/caddy-data:/data]
+    volumes: [./data/sites:/srv, ./data/caddy:/etc/caddy, ./data/caddy-data:/data]

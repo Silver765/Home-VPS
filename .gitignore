@@ -1,5 +1,4 @@
-data/fb-db/
-data/vps-*/
-data/caddy-data/
-*.env
+node_modules/
+standalone/data/
+standalone/.env
 .env
