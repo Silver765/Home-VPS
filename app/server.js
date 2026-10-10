@@ -19,6 +19,7 @@ const WEB_HOST = process.env.WEB_HOST || 'web'
 const WEB_PORT = Number(process.env.WEB_PORT || 80)
 const PUBLIC_SSH_PORT = process.env.PUBLIC_SSH_PORT || '2222'
 const PUBLIC_WEB_PORT = process.env.PUBLIC_WEB_PORT || '8088'
+const PUBLIC_COINS_PORT = process.env.PUBLIC_COINS_PORT || '8089'
 
 // The password lives in a small shared folder: this container reads/writes it and the
 // SSH container reads it at boot (FILE__USER_PASSWORD), so dashboard and SSH always match.
@@ -226,6 +227,10 @@ app.get('/api/connection', (req, res) => {
     host, sshUser: SSH_USER, sshPort: PUBLIC_SSH_PORT, webPort: PUBLIC_WEB_PORT,
     sshCommand: `ssh ${SSH_USER}@${host} -p ${PUBLIC_SSH_PORT}`,
     webUrl: `http://${host}:${PUBLIC_WEB_PORT}`,
+    // things you've deployed into the shell that have their own web UI (shown as launch buttons)
+    apps: fs.existsSync(path.join(ROOTS.sites, 'coins', 'index.html'))
+      ? [{ id: 'coinsos', name: 'CoinsOS', url: `http://${host}:${PUBLIC_COINS_PORT}` }]
+      : [],
   })
 })
 

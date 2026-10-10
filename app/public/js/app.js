@@ -86,9 +86,19 @@ function route() {
   routes[key]()
 }
 window.addEventListener('hashchange', () => { if (!$('#shell').classList.contains('hidden')) route() })
+async function loadAppLinks() {
+  try {
+    const c = await api('/api/connection')
+    $('#nav-apps').innerHTML = c.apps.length
+      ? '<div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;padding:14px 10px 4px">Your apps</div>' +
+        c.apps.map((a) => `<a href="${esc(a.url)}" target="_blank" rel="noopener"><i>↗</i>${esc(a.name)}</a>`).join('')
+      : ''
+  } catch {}
+}
 async function start() {
   $('#login').classList.add('hidden')
   $('#shell').classList.remove('hidden')
+  loadAppLinks()
   route()
 }
 
@@ -104,7 +114,8 @@ async function overview() {
       <div class="card" id="c-conn"><h2>Connect</h2><p class="desc">Use these to log in from anywhere on your network.</p><div class="muted">Loading…</div></div>
       <div class="card" id="c-sys"><h2>System</h2><p class="desc">Live resource usage of the host.</p><div class="muted">Loading…</div></div>
     </div>
-    <div class="card gap"><h2>Services</h2><div id="c-svc" class="muted">Loading…</div></div>`
+    <div class="card gap"><h2>Services</h2><div id="c-svc" class="muted">Loading…</div></div>
+    <div class="card gap hidden" id="c-apps"><h2>Your apps</h2><p class="desc">Things you've deployed on this VPS.</p><div id="c-apps-list"></div></div>`
   try {
     const c = await api('/api/connection')
     $('#c-conn').innerHTML = `<h2>Connect</h2><p class="desc">Use these to log in from anywhere on your network.</p>
@@ -114,6 +125,10 @@ async function overview() {
       <div class="muted" style="font-size:12px;margin-bottom:4px">Your website</div>
       <div class="copyline"><code>${esc(c.webUrl)}</code><a class="btn sm" href="${esc(c.webUrl)}" target="_blank" rel="noopener">Open</a><button class="btn sm" data-copy="${esc(c.webUrl)}">Copy</button></div>`
     document.querySelectorAll('[data-copy]').forEach((b) => (b.onclick = () => copy(b.dataset.copy)))
+    if (c.apps.length) {
+      $('#c-apps').classList.remove('hidden')
+      $('#c-apps-list').innerHTML = c.apps.map((a) => `<div class="kv"><span class="text">${esc(a.name)} <span class="muted">${esc(a.url)}</span></span><a class="btn sm primary" href="${esc(a.url)}" target="_blank" rel="noopener">Launch</a></div>`).join('')
+    }
   } catch (e) { $('#c-conn').insertAdjacentHTML('beforeend', `<div class="err">${esc(e.message)}</div>`) }
 
   const tick = async () => {
