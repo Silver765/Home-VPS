@@ -62,7 +62,14 @@ function cookieOf(req, name) {
   }
   return ''
 }
-const authed = (req) => validToken(cookieOf(req, 'hv_session'))
+function tokenOf(req) {
+  const h = req.headers['x-hv-token']
+  if (h) return String(h)
+  const m = /[?&]t=([^&]*)/.exec(req.url || '')
+  if (m) { try { return decodeURIComponent(m[1]) } catch {} }
+  return cookieOf(req, 'hv_session')
+}
+const authed = (req) => validToken(tokenOf(req)) || validToken(cookieOf(req, 'hv_session'))
 
 const fails = new Map() // ip -> {n, until}
 function throttled(ip) {
@@ -78,9 +85,11 @@ function noteFail(ip) {
 // ---------- app ----------
 const app = express()
 app.disable('x-powered-by')
+const stripPrefix = (u) => u.replace(/^\/apps\/[^/?]+(?=[/?]|$)/, '') || '/'
+app.use((req, res, next) => { req.url = stripPrefix(req.url); next() })
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff')
-  res.setHeader('X-Frame-Options', 'DENY')
+  res.setHeader('Content-Security-Policy', "frame-ancestors 'self'")
   res.setHeader('Referrer-Policy', 'no-referrer')
   next()
 })
@@ -129,8 +138,9 @@ app.post('/api/login', express.json({ limit: '4kb' }), (req, res) => {
     return res.status(401).json({ error: 'Wrong password.' })
   }
   fails.delete(ip)
-  startSession(res)
-  res.json({ ok: true })
+  const token = makeToken()
+  res.setHeader('Set-Cookie', `hv_session=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${SESSION_MS / 1000}`)
+  res.json({ ok: true, token })
 })
 app.post('/api/logout', (req, res) => {
   res.setHeader('Set-Cookie', 'hv_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0')
@@ -309,7 +319,8 @@ const wss = new WebSocketServer({ noServer: true, maxPayload: 1024 * 1024 })
 server.on('upgrade', (req, socket, head) => {
   let originOk = true
   try { originOk = !req.headers.origin || new URL(req.headers.origin).host === req.headers.host } catch { originOk = false }
-  if (req.url !== '/api/term' || !authed(req) || !originOk) {
+  req.url = stripPrefix(req.url)
+  if (req.url.split('?')[0] !== '/api/term' || !authed(req) || !originOk) {
     socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n')
     return socket.destroy()
   }

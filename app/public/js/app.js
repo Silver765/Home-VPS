@@ -3,14 +3,22 @@ const $ = (s, r = document) => r.querySelector(s)
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
 const main = $('#main')
 
+// Everything is relative to the page URL so the app works behind a sub-path proxy
+// (e.g. 5tratumOS serves it at /apps/jb-homevps/). A session token is kept as a
+// fallback in case a proxy drops the login cookie.
+const rel = (p) => p.replace(/^\//, '')
+const getToken = () => { try { return sessionStorage.getItem('hv_t') || '' } catch { return '' } }
+const setToken = (t) => { try { t ? sessionStorage.setItem('hv_t', t) : sessionStorage.removeItem('hv_t') } catch {} }
+const withToken = (url) => url + (url.includes('?') ? '&' : '?') + 't=' + encodeURIComponent(getToken())
+
 async function api(path, opts = {}) {
-  const o = { credentials: 'same-origin', ...opts, headers: { 'x-hv': '1', ...(opts.headers || {}) } }
+  const o = { credentials: 'same-origin', ...opts, headers: { 'x-hv': '1', 'x-hv-token': getToken(), ...(opts.headers || {}) } }
   if (opts.json !== undefined) {
     o.method = o.method || 'POST'
     o.headers['content-type'] = 'application/json'
     o.body = JSON.stringify(opts.json)
   }
-  const r = await fetch(path, o)
+  const r = await fetch(rel(path), o)
   if (r.status === 401 && path !== '/api/login') { showLogin(); throw new Error('Signed out') }
   const data = await r.json().catch(() => ({}))
   if (!r.ok) throw new Error(data.error || `Request failed (${r.status})`)
@@ -52,7 +60,8 @@ $('#login-form').addEventListener('submit', async (e) => {
   e.preventDefault()
   $('#login-err').textContent = ''
   try {
-    await api('/api/login', { json: { password: $('#login-pw').value } })
+    const login = await api('/api/login', { json: { password: $('#login-pw').value } })
+    setToken(login.token)
     $('#login-pw').value = ''
     const check = await api('/api/session')
     if (!check.authed) {
@@ -62,7 +71,7 @@ $('#login-form').addEventListener('submit', async (e) => {
     start()
   } catch (err) { $('#login-err').textContent = err.message }
 })
-$('#logout').addEventListener('click', async () => { await api('/api/logout', { method: 'POST' }).catch(() => {}); showLogin() })
+$('#logout').addEventListener('click', async () => { await api('/api/logout', { method: 'POST' }).catch(() => {}); setToken(''); showLogin() })
 
 // ---------- router ----------
 let timers = []
@@ -143,7 +152,7 @@ function terminal() {
   const connect = () => {
     if (ws) { try { ws.close() } catch {} }
     term.reset()
-    ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/api/term')
+    ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + location.pathname.replace(/[^/]*$/, '') + 'api/term?t=' + encodeURIComponent(getToken()))
     ws.onopen = () => { fit.fit(); sendSize(); term.focus() }
     ws.onmessage = (e) => term.write(e.data)
     ws.onclose = () => term.write('\r\n\x1b[90m[disconnected]\x1b[0m\r\n')
@@ -181,7 +190,7 @@ async function files() {
     $('#rows').innerHTML = entries.length ? entries.map((e) => `
       <tr class="entry"><td>${e.dir ? '📁' : '📄'} <a data-open="${esc(e.name)}" data-dir="${e.dir ? 1 : 0}">${esc(e.name)}</a></td>
       <td class="m">${e.dir ? '—' : fmtBytes(e.size)}</td><td class="m">${new Date(e.mtime).toLocaleString()}</td>
-      <td class="act">${e.dir ? '' : `<a class="btn sm" href="/api/files/download?${q(join(e.name))}">Download</a> `}
+      <td class="act">${e.dir ? '' : `<a class="btn sm" href="${withToken('api/files/download?' + q(join(e.name)))}">Download</a> `}
       <button class="btn sm danger" data-del="${esc(e.name)}">Delete</button></td></tr>`).join('')
       : '<tr><td colspan="4" class="muted">Empty folder.</td></tr>'
     document.querySelectorAll('[data-open]').forEach((a) => (a.onclick = () => {
