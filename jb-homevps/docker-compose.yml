@@ -10,7 +10,7 @@ version: "3.7"
 
 services:
   app:
-    image: ghcr.io/silver765/home-vps-app:1.2.0@sha256:2843f612906f07c4775efecb1e9eea616050be7f34e70646a657de83f81da3e2
+    image: ghcr.io/silver765/home-vps-app:1.2.2@sha256:e69d3fb8d3126d61fe2be84129f3d73df7ff8c8ec11b35fce837be2a17051c69
     restart: unless-stopped
     ports:
       - "3010:3010"

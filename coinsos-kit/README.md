@@ -10,7 +10,7 @@ LAN rigs ---------------------------------------> backend (:8080, udp :9999)
 ```
 
 ## Requirements
-* Home VPS app **1.2.0 or newer** (adds the ports and boot hooks this uses).
+* Home VPS app **1.2.2 or newer** (adds the ports and boot hooks this uses).
 * On your PC: Docker, and Windows' built-in `ssh` and `tar`. No Go or Node needed.
 
 ## First time
