@@ -90,7 +90,7 @@ const wrap = (fn) => (req, res) => fn(req, res).catch((e) => {
 })
 
 const startSession = (res) =>
-  res.setHeader('Set-Cookie', `hv_session=${makeToken()}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${SESSION_MS / 1000}`)
+  res.setHeader('Set-Cookie', `hv_session=${makeToken()}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${SESSION_MS / 1000}`)
 
 // Run a command on the VPS container over SSH (used to change the shell password live).
 function sshExec(password, command, stdin) {
@@ -133,7 +133,7 @@ app.post('/api/login', express.json({ limit: '4kb' }), (req, res) => {
   res.json({ ok: true })
 })
 app.post('/api/logout', (req, res) => {
-  res.setHeader('Set-Cookie', 'hv_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0')
+  res.setHeader('Set-Cookie', 'hv_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0')
   res.json({ ok: true })
 })
 app.get('/api/session', (req, res) => res.json({ authed: authed(req) }))

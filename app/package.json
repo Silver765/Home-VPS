@@ -1,6 +1,6 @@
 {
   "name": "home-vps-app",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "private": true,
   "description": "Dashboard for the Home VPS app (Umbrel / 5tratumOS)",
   "main": "server.js",

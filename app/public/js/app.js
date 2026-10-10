@@ -54,6 +54,11 @@ $('#login-form').addEventListener('submit', async (e) => {
   try {
     await api('/api/login', { json: { password: $('#login-pw').value } })
     $('#login-pw').value = ''
+    const check = await api('/api/session')
+    if (!check.authed) {
+      $('#login-err').textContent = "The password was right, but your browser didn't keep the login cookie. Open the dashboard directly at its own address (http://<box-ip>:3010, not inside another page) and allow cookies for it."
+      return
+    }
     start()
   } catch (err) { $('#login-err').textContent = err.message }
 })
